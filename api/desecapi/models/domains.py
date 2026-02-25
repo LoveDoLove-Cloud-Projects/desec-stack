@@ -182,9 +182,11 @@ class Domain(ExportModelOperationsMixin("Domain"), models.Model):
         if not self._keys:
             self._keys = [{**key, "managed": True} for key in pdns.get_keys(self)]
             try:
-                unmanaged_keys = self.rrset_set.get(
-                    subname="", type="DNSKEY"
-                ).records.all()
+                unmanaged_keys = (
+                    self.rrset_set.get(subname="", type="DNSKEY")
+                    .records.order_by("content")
+                    .all()
+                )
             except RRset.DoesNotExist:
                 pass
             else:
