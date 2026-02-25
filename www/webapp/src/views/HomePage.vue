@@ -375,6 +375,7 @@ export default {
         host: 'dfw-1.a.desec.io',
         left: '13%',
         top: '34%',
+        adopted_by: 'Hanobox e.K. (50%)',
       },
       {
         name: 'Hong Kong (ns1.desec.io)',
