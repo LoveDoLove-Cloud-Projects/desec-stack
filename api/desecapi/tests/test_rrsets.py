@@ -1,4 +1,5 @@
 import re
+from base64 import b64encode
 from contextlib import nullcontext
 from ipaddress import IPv4Network
 from itertools import product
@@ -8,7 +9,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import IntegrityError
-from psycopg.errors import ExclusionViolation
+from psycopg.errors import UniqueViolation
 from rest_framework import status
 
 from desecapi.models import BlockedSubnet, Domain, RR, RRset
@@ -19,15 +20,17 @@ from desecapi.tests.base import DesecTestCase, AuthenticatedRRSetBaseTestCase
 class UnauthenticatedRRSetTestCase(DesecTestCase):
     def test_unique_record_in_rrset(self):
         domain = self.create_domain()
+        # This results in 39708-octet rdata, the longest one currently in production
+        openpgpkey_rdata = b64encode(b"a" * 29781)
         with self.assertRaises(IntegrityError) as cm:
             RRset.objects.create(
                 domain=domain,
                 subname="foo",
-                type="A",
+                type="OPENPGPKEY",
                 ttl=3600,
-                contents=["1.2.3.4"] * 2,
+                contents=[openpgpkey_rdata.decode()] * 2,
             )
-        self.assertIsInstance(cm.exception.__cause__, ExclusionViolation)
+        self.assertIsInstance(cm.exception.__cause__, UniqueViolation)
 
     def test_unauthorized_access(self):
         url = self.reverse("v1:rrsets", name="example.com")

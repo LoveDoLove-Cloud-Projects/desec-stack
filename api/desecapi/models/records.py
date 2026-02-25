@@ -10,7 +10,7 @@ from django.contrib.postgres.fields import RangeOperators
 from django.core import validators
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
-from django.db.models import Manager
+from django.db.models import F, Func, Manager, Value
 from django.db.models.expressions import RawSQL
 from django_prometheus.models import ExportModelOperationsMixin
 from dns import rdataclass, rdatatype
@@ -267,15 +267,10 @@ class RR(ExportModelOperationsMixin("RR"), models.Model):
 
     class Meta:
         constraints = [
-            # not using UniqueConstraint as its btree's entry size is limited to 1/3 page size;
-            # however, some records (OPENPGPKEY, PQC keys/signatures?) may be larger
-            # Alternatively, could use a unique constraint on hash(content), but Django lacks API
-            ExclusionConstraint(
+            models.UniqueConstraint(
+                F("rrset"),
+                Func(F("content"), Value("sha256"), function="digest"),
                 name="unique_record_in_rrset",
-                expressions=[
-                    ("rrset", RangeOperators.EQUAL),
-                    ("content", RangeOperators.EQUAL),
-                ],
             ),
         ]
 
